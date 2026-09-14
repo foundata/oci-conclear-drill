@@ -1,0 +1,9 @@
+*
+!Containerfile
+!Containerfile.systemd
+!Containerfile.oneshot
+!Containerfile.helper
+!sudoers
+!scripts/
+!systemd/
+!examples/

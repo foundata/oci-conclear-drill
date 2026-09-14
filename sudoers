@@ -1,0 +1,1 @@
+drill ALL=(root) NOPASSWD: /usr/bin/id -u

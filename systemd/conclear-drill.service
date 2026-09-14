@@ -1,0 +1,11 @@
+[Unit]
+Description=ConClear drill unit
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/conclear-drill/drill-loop.sh
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

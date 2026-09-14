@@ -1,0 +1,50 @@
+FROM docker.io/library/debian:13-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 AS runtime
+
+ARG IMAGE_CREATED
+ARG IMAGE_REVISION
+ARG IMAGE_VERSION
+
+LABEL org.opencontainers.image.title="ConClear Drill: service"
+LABEL org.opencontainers.image.description="Synthetic long-running service that exercises every ConClear release stage; not for production use"
+LABEL org.opencontainers.image.vendor="foundata GmbH"
+LABEL org.opencontainers.image.source="https://foundata.com/en/projects/oci-conclear-drill/#source"
+LABEL org.opencontainers.image.url="https://foundata.com/en/projects/oci-conclear-drill/"
+LABEL org.opencontainers.image.documentation="https://foundata.com/en/projects/oci-conclear-drill/#doc"
+LABEL org.opencontainers.image.created="${IMAGE_CREATED}"
+LABEL org.opencontainers.image.revision="${IMAGE_REVISION}"
+LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
+
+ARG DEBIAN_FRONTEND=noninteractive
+# Packages:
+# - ca-certificates, jq: a small real package set so package inventory, SBOM
+#   and vulnerability scans see something beyond the base image.
+# - sudo: drills the functional escalation tests (permitted and denied caller).
+# The drill account 1001 is the service user; sudo lets it run exactly one
+# command as root. Every inherited set-ID bit except sudo's is stripped in the
+# same layer, as the image guide requires.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    jq \
+    sudo \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* /usr/share/man/* \
+  && find /usr/share/doc -type f ! -name copyright -delete \
+  && find /usr/share/doc -type l -delete \
+  && find /usr/share/doc -depth -type d -empty -delete \
+  && groupadd --gid 1001 drill \
+  && useradd --uid 1001 --gid 1001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin drill \
+  && find / -xdev -type f -perm /6000 ! -path /usr/bin/sudo -exec chmod a-s {} + \
+  && install -d -m 0755 /usr/local/lib/conclear-drill /usr/local/share/conclear-drill/examples
+
+COPY --chown=0:0 --chmod=0440 sudoers /etc/sudoers.d/conclear-drill
+COPY --chown=0:0 --chmod=0555 scripts/entrypoint.sh /usr/local/lib/conclear-drill/entrypoint.sh
+COPY --chown=0:0 --chmod=0555 scripts/healthcheck.sh /usr/local/lib/conclear-drill/healthcheck.sh
+# A Dockerfile shipped as example data: the configuration scanner evaluates it
+# although it is not this image's build definition. conclear.toml declares the
+# matching configuration exception.
+COPY --chown=0:0 --chmod=0444 examples/Dockerfile.example /usr/local/share/conclear-drill/examples/Dockerfile.example
+
+USER 1001:1001
+
+ENTRYPOINT ["/usr/local/lib/conclear-drill/entrypoint.sh"]

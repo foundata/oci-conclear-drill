@@ -1,0 +1,6 @@
+# Example shipped as documentation data inside the image. It is deliberately
+# not guide-conformant so the configuration scanner reports it, which the
+# drill covers with a declared configuration exception.
+FROM debian:latest
+RUN apt-get update && apt-get install -y curl
+CMD ["sh"]
