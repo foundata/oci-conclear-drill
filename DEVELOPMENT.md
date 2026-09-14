@@ -141,7 +141,10 @@ drill/verify.sh --workspace "${workspace}"
 ```
 
 All scripts accept `--registry <namespace>` (default `quay.io/conclear-drill`)
-and `--profile <name>` (default `drill`).
+and `--profile <name>` (default `drill`). `run.sh --local-only` runs the stages
+that need no registry (identity, static checks, local qualification, negative
+cases) and stops; that is the check to run before a registry exists or after a
+change to the images.
 
 
 ### Workspace and evidence<a id="drill-workspace"></a>
