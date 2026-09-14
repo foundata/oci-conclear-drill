@@ -81,8 +81,11 @@ defect and must be rejected by exactly the expected check. See
 
 ## Running a drill<a id="usage"></a>
 
-A drill is run by a ConClear maintainer against a release candidate wheel;
-[`DEVELOPMENT.md`](DEVELOPMENT.md) is the runbook. In short:
+A ConClear maintainer runs a drill against a release candidate wheel as step
+7 of ConClear's release procedure. The scripts never touch this checkout: they
+clone it into the workspace and add one drill-only commit that points the
+images at the disposable repositories, adds the changelog heading for the drill
+version and tags it.
 
 ```sh
 drill/prepare.sh --wheel "${wheel}" --workspace "${workspace}"
@@ -90,9 +93,27 @@ drill/run.sh --workspace "${workspace}"
 drill/verify.sh --workspace "${workspace}"
 ```
 
+`run.sh` executes these stages in order and stops at the first failure:
+
+1. Installed identity, `check` and `pins check` for every image.
+2. Local qualification of `service`, `systemd` and `oneshot` on both platforms
+   without a registry.
+3. `release` of `service`.
+4. The composable path on `systemd`: `qualify` and `transport export` per
+   platform, then `assemble`, `provenance`, `publish`, `attest`, `verify` and
+   `promote` as separate invocations.
+5. `release` of `oneshot`, then every negative case.
+
+`verify.sh` reads every promoted index, verifies signatures and attestations
+with the drill public key, verifies every archive, runs one authoritative
+rescan and retires the drill's runs. ConClear's own repeat-release network test
+gets its single-image fixture from `drill/lifecycle-fixture.sh`.
+
 Every run leaves one evidence index (`manifest.json`) in the workspace that
 names the candidate, the disposable registry resources, every stage result and
-every observation.
+every observation. That file belongs with the candidate's release evidence.
+[`DEVELOPMENT.md`](DEVELOPMENT.md) describes the workspace, the registry
+resources, the negative cases and the cleanup.
 
 
 
