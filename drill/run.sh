@@ -34,7 +34,11 @@ drill_record qualify-local "${status}" "$(jq -cn --arg v "${version}" '{version:
 [ "${status}" = passed ] || { drill_log "stopping before registry stages"; exit 1; }
 if [ "${DRILL_LOCAL_ONLY}" = yes ]; then
   drill_log "local-only drill complete; registry stages skipped"
-  "$(dirname "${BASH_SOURCE[0]}")/negative.sh" --workspace "${DRILL_WORKSPACE}" --registry "${DRILL_REGISTRY}" --profile "${DRILL_PROFILE}"
+  "$(dirname "${BASH_SOURCE[0]}")/negative.sh" --workspace "${DRILL_WORKSPACE}" --registry "${DRILL_REGISTRY}" --profile "${DRILL_PROFILE}" || true
+  for run in "${XDG_STATE_HOME}"/conclear/runs/*/; do
+    [ -d "${run}" ] || continue
+    drill_run "cleanup-$(basename "${run}")" "${DRILL_CLI}" cleanup "$(basename "${run}")" --retire --abandon --format json || true
+  done
   exit 0
 fi
 

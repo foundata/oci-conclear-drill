@@ -63,7 +63,10 @@ drill/                   the drill scripts and shared library
   process or file only when a ConClear check or stage needs it, and say which
   one in a comment.
 - **Base image**: Referenced by digest and updated through `conclear pins
-  propose` and `conclear pins apply`, never by editing a digest by hand.
+  propose` and `conclear pins apply`, never by editing a digest by hand. The
+  install layer also upgrades the base packages, because Debian publishes
+  security updates more often than it rebuilds the slim image and a fixable
+  vulnerability in the base rejects every qualification.
 - **Set-ID bits**: Stripped in the same layer that installs packages. The
   `service` image keeps `sudo`, the `systemd` image keeps `su`; both are
   declared in `conclear.toml`, and the negative cases cover both failure modes.
