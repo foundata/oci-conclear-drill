@@ -136,8 +136,10 @@ cpus = 1.0
 pids = 256
 nofile = 2048
 health_command = ["/usr/bin/systemctl", "is-active", "--quiet", "conclear-drill.service"]
-startup_timeout_seconds = 120
-shutdown_timeout_seconds = 30
+# Generous on purpose: the drill qualifies arm64 through user-mode emulation,
+# where systemd starts and stops several times slower than natively.
+startup_timeout_seconds = 240
+shutdown_timeout_seconds = 90
 
 [images.runtime.root_requirement]
 rationale = "systemd is PID 1 and manages the drill unit; it must run as UID 0."
