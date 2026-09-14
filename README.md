@@ -1,4 +1,125 @@
-# OCI Image: ConClear Drill
+# OCI Images: ConClear Drill
+
+Synthetic container images whose only purpose is to exercise
+[ConClear](https://foundata.com/en/projects/conclear/), foundata's release
+tool for OCI images. A drill rehearses the complete release procedure against a
+disposable registry: every profile ConClear supports, the composable
+multi-worker path, interruption and resume, cleanup, independent verification,
+and a set of deliberate negative cases that a real project must never carry.
+
+The images are **not for production use**. They exist so that a ConClear
+release candidate can be proven without depending on any real product's
+release cadence, registry or credentials.
+
+
+
+<!-- rumdl-disable MD033 -->
+<!-- HTML for consistent rendering across limited platform parsers -->
+<div align="center" id="project-readme-header">
+<br>
+<br>
+
+**⭐ Found this useful? Support open-source and star this project:**
+
+[![GitHub repository](https://img.shields.io/github/stars/foundata/oci-conclear-drill.svg)](https://github.com/foundata/oci-conclear-drill)
+
+<br>
+</div>
+<!-- rumdl-enable MD033 -->
+
+## Table of contents<a id="toc"></a>
+
+- [Images](#images)
+- [What a drill proves](#coverage)
+- [Running a drill](#usage)
+- [Non-goals / Limitations](#limitations)
+- [Development](#development)
+- [Contributing](#contributing)
+- [Licensing, copyright](#licensing-copyright)
+  - [Container configuration, repository](#licensing-copyright-project)
+  - [Container images](#licensing-copyright-image)
+  - [Trademarks](#trademarks)
+- [Author information](#author-information)
+
+
+
+## Images<a id="images"></a>
+
+All images build from `docker.io/library/debian:13-slim` for `linux/amd64` and
+`linux/arm64`.
+
+| Image     | Profile    | Purpose                                                                                                                  |
+| --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `service` | `service`  | Long-running process with a health command, generated test material, functional sudo tests, hooks and a configuration exception |
+| `systemd` | `systemd`  | `systemd` as PID 1 with one required drill unit and one declared set-ID executable                                       |
+| `oneshot` | `one-shot` | Processes a mounted fixture and exits                                                                                    |
+| `helper`  | test-only  | Preparation step of `service`: derives one secret and one public file; never released                                    |
+
+Released images land in `quay.io/conclear-drill/drill-<image>` and carry
+throwaway versions. Nothing in that registry is meant to be consumed.
+
+
+
+## What a drill proves<a id="coverage"></a>
+
+The positive path covers, per image and platform: static checks, pin
+observation, build, runtime qualification with readiness, health, signal and
+shutdown expectations, resource footprint, the set-ID inventory, the sudo
+escalation tests, test fixtures with secret and public outputs produced by a
+test-image dependency, repository hooks including one that leaves a rootless
+container store behind, vulnerability, secret and configuration scans with a
+declared exception, SBOM generation, publication, attestation, verification,
+promotion, candidate cleanup, archives and rescans. The composable path runs
+`qualify` and `transport export` per worker, then `assemble`, `provenance`,
+`publish`, `attest`, `verify` and `promote` as separate invocations.
+
+The negative cases under [`negative/`](negative/) each carry exactly one
+defect and must be rejected by exactly the expected check. See
+[`DEVELOPMENT.md`](DEVELOPMENT.md#negative-cases) for the list.
+
+
+
+## Running a drill<a id="usage"></a>
+
+A drill is run by a ConClear maintainer against a release candidate wheel;
+[`DEVELOPMENT.md`](DEVELOPMENT.md) is the runbook. In short:
+
+```sh
+drill/prepare.sh --wheel "${wheel}" --workspace "${workspace}"
+drill/run.sh --workspace "${workspace}"
+drill/verify.sh --workspace "${workspace}"
+```
+
+Every run leaves one evidence index (`manifest.json`) in the workspace that
+names the candidate, the disposable registry resources, every stage result and
+every observation.
+
+
+
+## Non-goals / Limitations<a id="limitations"></a>
+
+- The images do nothing useful. Their processes exist to be observed by
+  ConClear.
+- They are not hardened, minimal or fast; they are deliberately ordinary so
+  that ordinary defects show up.
+- The registry organisation, its robot account and the signing key are
+  disposable and may be emptied or rotated at any time.
+- Only Podman is supported as the container runtime.
+
+
+
+## Development<a id="development"></a>
+
+[`DEVELOPMENT.md`](DEVELOPMENT.md) describes the repository layout, how to build
+and test the images locally, the drill procedure and the negative cases.
+[`CHANGELOG.md`](CHANGELOG.md) documents what changed between releases of the
+drill itself.
+
+
+## Contributing<a id="contributing"></a>
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contribution workflow and
+[`DEVELOPMENT.md`](DEVELOPMENT.md) for local builds, tests and drills.
 
 
 ## Licensing, copyright<a id="licensing-copyright"></a>
@@ -25,6 +146,34 @@ a
 <!--REUSE-IgnoreEnd-->
 
 [![REUSE status](https://api.reuse.software/badge/github.com/foundata/oci-conclear-drill)](https://api.reuse.software/info/github.com/foundata/oci-conclear-drill)
+
+
+
+### Container images<a id="licensing-copyright-image"></a>
+
+An image built from this repository bundles various software components along
+with direct and indirect dependencies, which are subject to their respective
+licenses. When using it, **you are responsible for ensuring that your usage
+complies with all relevant licenses** for the software contained within the
+image.
+
+For further licensing information about the software contained in an image built
+from this repository, please refer to the following resources:
+
+- <https://www.debian.org/legal/licenses/>
+
+
+
+### Trademarks<a id="trademarks"></a>
+
+- Red Hat® and Quay® are trademarks of Red Hat, Inc., registered in the US and
+  other countries
+- Debian® is a registered trademark of Software in the Public Interest, Inc.
+- Docker® is a trademark of Docker, Inc.
+- Linux® is a registered trademark of Linus Torvalds
+
+Their use here is purely descriptive and does not imply any affiliation with or
+endorsement by the trademark holders.
 
 
 ## Author information<a id="author-information"></a>
