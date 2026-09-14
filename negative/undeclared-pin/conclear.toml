@@ -91,6 +91,8 @@ cpus = 1.0
 pids = 64
 nofile = 512
 health_command = ["/usr/local/lib/conclear-drill/healthcheck.sh"]
+# sudo changes user and group IDs; without these the escalation probe fails.
+capabilities = ["CAP_SETUID", "CAP_SETGID"]
 immutable_paths = ["/usr/local/lib/conclear-drill", "/usr/local/share/conclear-drill"]
 startup_timeout_seconds = 60
 shutdown_timeout_seconds = 15
