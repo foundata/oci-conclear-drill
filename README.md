@@ -48,12 +48,12 @@ release cadence, registry or credentials.
 All images build from `docker.io/library/debian:13-slim` for `linux/amd64` and
 `linux/arm64`.
 
-| Image     | Profile    | Purpose                                                                                                                  |
-| --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+|   Image   |  Profile   | Purpose |
+| --------- | ---------- | ------- |
 | `service` | `service`  | Long-running process with a health command, generated test material, functional sudo tests, hooks and a configuration exception |
-| `systemd` | `systemd`  | `systemd` as PID 1 with one required drill unit and one declared set-ID executable                                       |
-| `oneshot` | `one-shot` | Processes a mounted fixture and exits                                                                                    |
-| `helper`  | test-only  | Preparation step of `service`: derives one secret and one public file; never released                                    |
+| `systemd` | `systemd`  | `systemd` as PID 1 with one required drill unit and one declared set-ID executable |
+| `oneshot` | `one-shot` | Processes a mounted fixture and exits |
+| `helper`  | test-only  | Preparation step of `service`: derives one secret and one public file; never released |
 
 Released images land in `quay.io/conclear-drill/drill-<image>` and carry
 throwaway versions. Nothing in that registry is meant to be consumed.
