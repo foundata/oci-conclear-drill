@@ -19,10 +19,14 @@ ARG DEBIAN_FRONTEND=noninteractive
 # - ca-certificates, jq: a small real package set so package inventory, SBOM
 #   and vulnerability scans see something beyond the base image.
 # - sudo: drills the functional escalation tests (permitted and denied caller).
+# The base image is rebuilt less often than Debian publishes security updates,
+# so the install layer upgrades the base packages; otherwise fixable
+# vulnerabilities in the base reject every qualification.
 # The drill account 1001 is the service user; sudo lets it run exactly one
 # command as root. Every inherited set-ID bit except sudo's is stripped in the
 # same layer, as the image guide requires.
 RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
     jq \

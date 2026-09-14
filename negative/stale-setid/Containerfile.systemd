@@ -23,6 +23,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # the integration test target images. Every inherited set-ID bit except su's is
 # stripped; su stays as the one declared set-ID executable of the drill.
 RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
   && apt-get install -y --no-install-recommends \
     procps \
     systemd \
