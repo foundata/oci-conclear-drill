@@ -31,16 +31,18 @@ for image in service systemd oneshot; do
   done
 done
 drill_record qualify-local "${status}" "$(jq -cn --arg v "${version}" '{version: $v}')"
-[ "${status}" = passed ] || { drill_log "stopping before registry stages"; exit 1; }
 if [ "${DRILL_LOCAL_ONLY}" = yes ]; then
-  drill_log "local-only drill complete; registry stages skipped"
-  "$(dirname "${BASH_SOURCE[0]}")/negative.sh" --workspace "${DRILL_WORKSPACE}" --registry "${DRILL_REGISTRY}" --profile "${DRILL_PROFILE}" || true
+  # The negative cases run regardless of the positive outcome so one local
+  # drill reports everything; every run is retired afterwards.
+  "$(dirname "${BASH_SOURCE[0]}")/negative.sh" --workspace "${DRILL_WORKSPACE}" --registry "${DRILL_REGISTRY}" --profile "${DRILL_PROFILE}" || status=failed
   for run in "${XDG_STATE_HOME}"/conclear/runs/*/; do
     [ -d "${run}" ] || continue
     drill_run "cleanup-$(basename "${run}")" "${DRILL_CLI}" cleanup "$(basename "${run}")" --retire --abandon --format json || true
   done
-  exit 0
+  drill_log "local-only drill ${status}; registry stages skipped"
+  [ "${status}" = passed ]; exit
 fi
+[ "${status}" = passed ] || { drill_log "stopping before registry stages"; exit 1; }
 
 # 3. Part A: complete release of the service image.
 if drill_run release-service "${DRILL_CLI}" release --revision "${revision}" --image service --version "${version}" --profile "${DRILL_PROFILE}" --format json; then

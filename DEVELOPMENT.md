@@ -35,6 +35,18 @@ release procedure relies on; nothing here depends on another product.
   private environment, and `jq`.
 - **arm64 emulation** (`qemu-user-static` with `binfmt_misc`) when the host is
   x86_64; every image declares both platforms and the drill qualifies both.
+  The handler needs the `C` flag, otherwise set-user-ID binaries such as
+  `sudo` run without their privileges under emulation and the escalation
+  tests of the `service` image fail. Fedora registers `qemu-aarch64` with `F`
+  only; override it once:
+
+  ```sh
+  sudo cp /usr/lib/binfmt.d/qemu-aarch64-static.conf /etc/binfmt.d/
+  sudo sed -i 's/:F$/:FC/' /etc/binfmt.d/qemu-aarch64-static.conf
+  sudo systemctl restart systemd-binfmt
+  grep flags /proc/sys/fs/binfmt_misc/qemu-aarch64
+  ```
+
 - For the `systemd` image on SELinux hosts:
   `sudo setsebool -P container_manage_cgroup on`.
 
