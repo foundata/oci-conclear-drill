@@ -1,6 +1,6 @@
 version = 1
 SPDX-PackageName = "ConClear Drill"
-SPDX-PackageDownloadLocation = "https://foundata.com/en/projects/conclear-drill/#releases"
+SPDX-PackageDownloadLocation = "https://foundata.com/en/projects/oci-conclear-drill/"
 SPDX-PackageSupplier = "foundata GmbH (https://foundata.com)"
 SPDX-PackageComment = """
 This project may include calls to Application Programming Interfaces
