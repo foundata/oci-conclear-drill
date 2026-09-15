@@ -12,6 +12,6 @@ set -eu
 report="${CC_HOOK_SCRATCH}/inspect-layout.json"
 skopeo inspect --raw "oci:${CC_LAYOUT}" > "${report}"
 jq -e '.schemaVersion == 2' "${report}" > /dev/null
-jq -e --arg digest "${CC_IMAGE_DIGEST}" '.digest == $digest' "${CC_TEST_INPUT_MANIFEST}" > /dev/null
+jq -e --arg digest "${CC_IMAGE_DIGEST}" '.primary.digest == $digest' "${CC_TEST_INPUT_MANIFEST}" > /dev/null
 printf 'inspect-layout: %s %s ok\n' "${CC_PLATFORM}" "${CC_IMAGE_DIGEST}"
 rm -f "${report}"
