@@ -226,14 +226,15 @@ Each directory under `negative/` replaces its files in a fresh clone of the
 drill commit and must be rejected by exactly the check named in its `expect`
 file; `image` selects a different image than `service`.
 
-|        Case         | Expected | Defect |
-| ------------------- | -------- | ------ |
-| `undeclared-pin`    | `CC0203` | The pinned base image has no `[[images.pins]]` declaration |
-| `failing-health`    | `CC0403` | The health command always fails |
-| `undeclared-setid`  | `CC0406` | Inherited set-ID helpers are not stripped |
-| `stale-setid`       | `CC0406` | `su` is declared but its bit was stripped (`systemd` image) |
-| `expired-exception` | `CC0503` | The configuration exception expired |
-| `version-mismatch`  | `CC0005` | The changelog names another version than the release |
+|          Case          | Expected | Defect |
+| ---------------------- | -------- | ------ |
+| `undeclared-pin`       | `CC0203` | The pinned base image has no `[[images.pins]]` declaration |
+| `failing-health`       | `CC0403` | The health command always fails |
+| `undeclared-setid`     | `CC0406` | Inherited set-ID helpers are not stripped |
+| `stale-setid`          | `CC0406` | `su` is declared but its bit was stripped (`systemd` image) |
+| `expired-exception`    | `CC0503` | The configuration exception expired |
+| `version-mismatch`     | `CC0005` | The changelog names another version than the release |
+| `hook-outside-scratch` | retire   | A hook leaves a rootless store below the checkout; `cleanup --retire` must stop and name it |
 
 The `run-from-layout` hook of the positive path leaves a rootless container
 store in its scratch directory on purpose; ConClear's removal of that store
