@@ -45,10 +45,14 @@ for case_dir in "${DRILL_REPOSITORY}"/negative/*/; do
       status=failed; drill_log "negative ${name}: UNEXPECTED retire succeeded"; continue
     fi
     retire_message="$(jq -r '.message // ""' "${DRILL_WORKSPACE}/artifacts/negative-${name}-retire.json" 2>/dev/null || true)"
-    if printf '%s' "${retire_message}" | grep -q "retired only partially" && printf '%s' "${retire_message}" | grep -q "${pattern}"; then
-      drill_log "negative ${name}: retire stopped and named ${pattern} as expected"
+    retire_message="${retire_message}$(head -c 400 "${DRILL_WORKSPACE}/logs/negative-${name}-retire.stderr" 2>/dev/null || true)"
+    # The blocking content stops either the Git worktree removal during cleanup
+    # or the removal of the run directory itself; both must name it and point
+    # the operator at --abandon.
+    if printf '%s' "${retire_message}" | grep -q "${pattern}" && printf '%s' "${retire_message}" | grep -q -- "--abandon"; then
+      drill_log "negative ${name}: retire stopped, named the cause and asked for --abandon as expected"
       podman unshare rm -rf "${XDG_STATE_HOME}/conclear/runs/${run_id}/checkout/.drill-litter" 2>/dev/null || true
-      (cd "${target}" && drill_run "negative-${name}-retire-again" "${DRILL_CLI}" cleanup "${run_id}" --retire --format json) || { status=failed; drill_log "negative ${name}: second retire FAILED"; }
+      (cd "${target}" && drill_run "negative-${name}-retire-again" "${DRILL_CLI}" cleanup "${run_id}" --retire --abandon --format json) || { status=failed; drill_log "negative ${name}: giving the run up FAILED"; }
     else
       status=failed; drill_log "negative ${name}: UNEXPECTED retire message: ${retire_message:0:200}"
     fi
