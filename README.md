@@ -46,7 +46,9 @@ release cadence, registry or credentials.
 ## Images<a id="images"></a>
 
 All images build from `docker.io/library/debian:13-slim` for `linux/amd64` and
-`linux/arm64`.
+`linux/arm64`, except `systemd`: under user-mode emulation systemd does not act
+on its stop signal, so that image is qualified on amd64 only until a native
+arm64 host is available.
 
 |   Image   |  Profile   | Purpose |
 | --------- | ---------- | ------- |

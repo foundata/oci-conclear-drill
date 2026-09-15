@@ -204,9 +204,10 @@ tags with the registry API before a drill when a previous run was interrupted.
 `run.sh` executes, in dependency order, and stops at the first failed stage:
 
 1. Installed identity, `check` and `pins check` for every image.
-2. Local qualification of `service`, `systemd` and `oneshot` on both platforms
-   without a profile: build, runtime tests, footprint, set-ID inventory, sudo
-   tests, hooks, scans, SBOM. Needs no registry.
+2. Local qualification of `service`, `systemd` and `oneshot` on their declared
+   platforms without a profile: build, runtime tests, footprint, set-ID
+   inventory, sudo tests, hooks, scans, SBOM. Needs no registry. `systemd`
+   declares amd64 only, see the comment in `conclear.toml`.
 3. Part A: `release` of `service`.
 4. Part B: the composable path on `systemd`: `qualify` and `transport export`
    per platform, then `assemble`, `provenance`, `publish`, `attest`, `verify`

@@ -116,7 +116,10 @@ review_trigger = "Review when the policy file, the accounts or the sudo package 
 id = "systemd"
 containerfile = "Containerfile.systemd"
 repository = "quay.io/conclear-drill/drill-systemd"
-platforms = ["linux/amd64", "linux/arm64"]
+# amd64 only: under user-mode emulation systemd as PID 1 does not act on
+# SIGRTMIN+3 (measured: still running 180 s after the signal), so an emulated
+# arm64 qualification can only fail its shutdown budget. Test arm64 natively.
+platforms = ["linux/amd64"]
 
 [[images.pins]]
 reference = "docker.io/library/debian:13-slim"
