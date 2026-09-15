@@ -91,10 +91,15 @@ images at the disposable repositories, adds the changelog heading for the drill
 version and tags it.
 
 ```sh
+drill/profile.sh --workspace "${workspace}" --credentials "${credentials}"
 drill/prepare.sh --wheel "${wheel}" --workspace "${workspace}"
 drill/run.sh --workspace "${workspace}"
 drill/verify.sh --workspace "${workspace}"
 ```
+
+`profile.sh` installs the disposable registry and signing credentials once per
+workspace; [`DEVELOPMENT.md`](DEVELOPMENT.md#drill-registry) lists what they
+are.
 
 `run.sh` executes these stages in order and stops at the first failure:
 
