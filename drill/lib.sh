@@ -4,12 +4,12 @@
 set -euo pipefail
 
 drill_usage() {
-  printf 'usage: %s --workspace <dir> [--wheel <path>] [--registry <namespace>] [--profile <name>] [--local-only]\n' "${0##*/}" >&2
+  printf 'usage: %s --workspace <dir> [--wheel <path>] [--registry <namespace>] [--profile <name>] [--local-only] [--version <x.y.z>]\n' "${0##*/}" >&2
   exit 64
 }
 
 drill_parse_arguments() {
-  DRILL_WORKSPACE=""; DRILL_WHEEL=""; DRILL_REGISTRY="quay.io/conclear-drill"; DRILL_PROFILE="drill"; DRILL_LOCAL_ONLY=no
+  DRILL_WORKSPACE=""; DRILL_WHEEL=""; DRILL_REGISTRY="quay.io/conclear-drill"; DRILL_PROFILE="drill"; DRILL_LOCAL_ONLY=no; DRILL_VERSION=""
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --workspace) DRILL_WORKSPACE="$2"; shift 2 ;;
@@ -17,6 +17,7 @@ drill_parse_arguments() {
       --registry) DRILL_REGISTRY="$2"; shift 2 ;;
       --profile) DRILL_PROFILE="$2"; shift 2 ;;
       --local-only) DRILL_LOCAL_ONLY=yes; shift ;;
+      --version) DRILL_VERSION="$2"; shift 2 ;;
       *) drill_usage ;;
     esac
   done

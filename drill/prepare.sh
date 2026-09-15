@@ -42,9 +42,13 @@ PY
 # 2. Throwaway clone with one drill-only commit: disposable registry, changelog
 #    heading and tag for the drill version. Only the version counter file in
 #    the workspace persists between runs.
-counter="${DRILL_WORKSPACE}/drill-version"
-next=$(( $(cat "${counter}" 2>/dev/null || echo 0) + 1 )); printf '%s\n' "${next}" > "${counter}"
-DRILL_VERSION="0.1.${next}"
+# The counter lives beside the workspaces, not inside one, so repeated drills
+# against the same registry never reuse a version another drill promoted.
+counter="$(dirname "${DRILL_WORKSPACE}")/.drill-version"
+if [ -z "${DRILL_VERSION}" ]; then
+  next=$(( $(cat "${counter}" 2>/dev/null || echo 0) + 1 )); printf '%s\n' "${next}" > "${counter}"
+  DRILL_VERSION="0.1.${next}"
+fi
 rm -rf "${DRILL_WORKSPACE}/project"
 git clone -q "${DRILL_REPOSITORY}" "${DRILL_WORKSPACE}/project"
 git -C "${DRILL_WORKSPACE}/project" remote set-url origin https://github.com/foundata/oci-conclear-drill.git
