@@ -78,6 +78,19 @@ drill_json() {
   jq -r "$2" "${DRILL_WORKSPACE}/artifacts/$1.json"
 }
 
+# drill_platforms <image>: the platforms the drill clone declares for an image.
+drill_platforms() {
+  python3 - "${DRILL_WORKSPACE}/project/conclear.toml" "$1" <<'PY'
+import sys, tomllib
+config, image = sys.argv[1], sys.argv[2]
+with open(config, "rb") as handle:
+    data = tomllib.load(handle)
+for item in data["images"]:
+    if item["id"] == image:
+        print("\n".join(item["platforms"]))
+PY
+}
+
 # drill_source_revision: the head of the throwaway drill clone.
 drill_source_revision() {
   git -C "${DRILL_WORKSPACE}/project" rev-parse HEAD

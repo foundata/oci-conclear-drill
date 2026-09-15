@@ -6,7 +6,6 @@ drill_parse_arguments "$@"
 cd "${DRILL_WORKSPACE}/project"
 version="$(cat "${DRILL_WORKSPACE}/drill-version.current")"
 revision="$(drill_source_revision)"
-platforms=(linux/amd64 linux/arm64)
 
 # 1. Installed identity and static checks for every image.
 drill_run identity "${DRILL_CLI}" version --format json
@@ -21,7 +20,7 @@ drill_record static "$( for i in service systemd oneshot helper; do drill_json "
 #    build, runtime tests, scans, SBOM, set-ID inventory, footprint. No registry.
 status=passed
 for image in service systemd oneshot; do
-  for platform in "${platforms[@]}"; do
+  for platform in $(drill_platforms "${image}"); do
     name="qualify-local-${image}-${platform//\//-}"
     if drill_run "${name}" "${DRILL_CLI}" qualify --revision "${revision}" --image "${image}" --platform "${platform}" --version "${version}" --format json; then
       drill_log "${name}: $(drill_json "${name}" '.details // [] | join("; ")')"
@@ -54,7 +53,7 @@ fi
 # 4. Part B: composable path on the systemd image, one worker per platform.
 transports=(); digests=()
 first_db=""; first_start=""
-for platform in "${platforms[@]}"; do
+for platform in $(drill_platforms systemd); do
   key="${platform//\//-}"
   extra=()
   [ -n "${first_db}" ] && extra=(--database-digest "${first_db}" --qualification-started-at "${first_start}")
