@@ -20,7 +20,7 @@ repository = "quay.io/conclear-drill/drill-lifecycle"
 platforms = ["linux/amd64"]
 
 [[images.pins]]
-reference = "docker.io/library/debian:13-slim"
+reference = "docker.io/library/busybox:stable-musl"
 tag_intent = "moving-release-line"
 
 [images.release]
@@ -31,12 +31,12 @@ moving_tags = ["latest"]
 profile = "service"
 user = 1001
 writable_mounts = ["/run/conclear-drill"]
-# Measured 2026-09-15: the same process set as the service image without sudo.
-memory = "64MiB"
+# A single BusyBox process; the margin covers the readiness probe.
+memory = "32MiB"
 cpus = 1.0
-pids = 32
-nofile = 128
-health_command = ["/usr/local/lib/conclear-drill/healthcheck.sh"]
+pids = 16
+nofile = 64
+health_command = ["/bin/busybox", "sh", "/usr/local/lib/conclear-drill/healthcheck.sh"]
 immutable_paths = ["/usr/local/lib/conclear-drill"]
 startup_timeout_seconds = 60
 shutdown_timeout_seconds = 15

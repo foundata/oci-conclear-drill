@@ -1,4 +1,6 @@
-FROM docker.io/library/debian:13-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 AS runtime
+FROM docker.io/library/busybox:stable-musl@sha256:3c6ae8008e2c2eedd141725c30b20d9c36b026eb796688f88205845ef17aa213 AS tools
+
+FROM scratch AS runtime
 
 ARG IMAGE_CREATED
 ARG IMAGE_REVISION
@@ -15,15 +17,15 @@ LABEL org.opencontainers.image.revision="${IMAGE_REVISION}"
 LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
 
 # The repeat-release test requires the same revision to rebuild to the same
-# digest, so this image installs nothing: package managers write logs and
-# status files whose content changes with every run. It only strips the
-# inherited set-ID bits, which changes modes and no file content, and copies
-# two scripts from the checkout.
-RUN find / -xdev -type f -perm /6000 -exec chmod a-s {} +
-
-COPY --chown=0:0 --chmod=0555 scripts/entrypoint.sh /usr/local/lib/conclear-drill/entrypoint.sh
-COPY --chown=0:0 --chmod=0555 scripts/healthcheck.sh /usr/local/lib/conclear-drill/healthcheck.sh
+# digest, so this image runs no build step at all: package managers write logs
+# and status files whose content differs on every run. A distribution base is
+# unusable for a second reason: its packages accumulate fixable vulnerabilities
+# that only an upgrade fixes, and an upgrade is a build step. One static
+# BusyBox binary and two scripts are therefore copied onto an empty image.
+COPY --from=tools --chown=0:0 --chmod=0555 /bin/busybox /bin/busybox
+COPY --chown=0:0 --chmod=0555 scripts/lifecycle-entrypoint.sh /usr/local/lib/conclear-drill/entrypoint.sh
+COPY --chown=0:0 --chmod=0555 scripts/lifecycle-healthcheck.sh /usr/local/lib/conclear-drill/healthcheck.sh
 
 USER 1001:1001
 
-ENTRYPOINT ["/usr/local/lib/conclear-drill/entrypoint.sh"]
+ENTRYPOINT ["/bin/busybox", "sh", "/usr/local/lib/conclear-drill/entrypoint.sh"]
