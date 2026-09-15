@@ -1,18 +1,21 @@
 #!/bin/sh
-# Negative case: a hook that ignores CC_HOOK_SCRATCH and runs a container from
-# a rootless store below the checkout. The container writes files owned by
-# subordinate user IDs, so ConClear can retire the run only partially and must
-# name the path this user cannot remove.
+# Negative case: a hook that ignores CC_HOOK_SCRATCH and writes below the
+# checkout from inside a rootless container. The directory and file it leaves
+# belong to a subordinate user ID, so the invoking user cannot unlink them and
+# ConClear must retire the run only partially, naming the blocking path.
 set -eu
 : "${CC_LAYOUT:?ConClear layout path}"
 : "${CC_PLATFORM:?ConClear platform}"
 : "${CC_SOURCE_ROOT:?ConClear source root}"
 
-store="${CC_SOURCE_ROOT}/.drill-litter/store"
-runroot="${CC_SOURCE_ROOT}/.drill-litter/runroot"
-mkdir -p "${store}" "${runroot}"
+litter="${CC_SOURCE_ROOT}/.drill-litter"
+store="${litter}/store"
+runroot="${litter}/runroot"
+output="${litter}/output"
+mkdir -p "${store}" "${runroot}" "${output}"
 skopeo copy --quiet "oci:${CC_LAYOUT}" "containers-storage:[vfs@${store}+${runroot}]localhost/conclear-drill:litter"
 podman --root "${store}" --runroot "${runroot}" --storage-driver vfs run --rm \
-  --platform "${CC_PLATFORM}" --network none --entrypoint /bin/sh \
-  localhost/conclear-drill:litter -c 'id > /tmp/litter; cat /etc/os-release | head -1'
-printf 'litter-outside: rootless store left below the checkout\n'
+  --platform "${CC_PLATFORM}" --network none --user 0 \
+  --volume "${output}:/out:Z" --entrypoint /bin/sh \
+  localhost/conclear-drill:litter -c 'install -d -m 0700 -o 4242 -g 4242 /out/state && install -m 0600 -o 4242 -g 4242 /dev/null /out/state/data'
+printf 'litter-outside: subordinate-owned output left below the checkout\n'
