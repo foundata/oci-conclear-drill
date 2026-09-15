@@ -14,7 +14,9 @@ for case_dir in "${DRILL_REPOSITORY}"/negative/*/; do
   rm -rf "${target}"; mkdir -p "$(dirname "${target}")"
   git clone -q "${DRILL_WORKSPACE}/project" "${target}"
   git -C "${target}" remote set-url origin https://github.com/foundata/oci-conclear-drill.git
-  (cd "${target}" && find "${case_dir}" -mindepth 1 -maxdepth 1 ! -name expect -exec cp -r {} . \; \
+  # Merge the case over the clone: `cp -r hooks .` would nest the directory
+  # inside the existing one, so the case's files must be copied content-first.
+  (cd "${target}" && cp -a "${case_dir}/." . && rm -f expect image \
     && git -c user.name="ConClear drill" -c user.email="drill@invalid" add -A \
     && git -c user.name="ConClear drill" -c user.email="drill@invalid" commit -q -m "drill: negative case ${name}" \
     && git tag -f "v${version}" >/dev/null)
