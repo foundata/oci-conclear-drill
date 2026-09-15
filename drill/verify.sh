@@ -16,8 +16,15 @@ for image in service systemd oneshot; do
   fi
   DOCKER_CONFIG="$(mktemp -d)"; cp "${auth}" "${DOCKER_CONFIG}/config.json"; export DOCKER_CONFIG
   cosign verify --key "${public_key}" "${reference}" > /dev/null 2>>"${DRILL_WORKSPACE}/logs/verify.log" && drill_log "cosign verify ${image} ok" || { status=failed; drill_log "cosign verify ${image} FAILED"; }
-  for type in slsaprovenance1 spdxjson; do
-    cosign verify-attestation --key "${public_key}" --type "${type}" "${reference}" > /dev/null 2>>"${DRILL_WORKSPACE}/logs/verify.log" && drill_log "verify-attestation ${type} ${image} ok" || { status=failed; drill_log "verify-attestation ${type} ${image} FAILED"; }
+  cosign verify-attestation --key "${public_key}" --type slsaprovenance1 "${reference}" > /dev/null 2>>"${DRILL_WORKSPACE}/logs/verify.log" \
+    && drill_log "verify-attestation slsaprovenance1 ${image} ok" \
+    || { status=failed; drill_log "verify-attestation slsaprovenance1 ${image} FAILED"; }
+  # The SBOM is attached to each platform manifest, not to the index, so it is
+  # verified exactly the way ConClear's README tells consumers to.
+  for digest in $(jq -r '.manifests[]?.digest // empty' "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json" 2>/dev/null); do
+    cosign verify-attestation --key "${public_key}" --type spdxjson "${DRILL_REGISTRY}/drill-${image}@${digest}" > /dev/null 2>>"${DRILL_WORKSPACE}/logs/verify.log" \
+      && drill_log "verify-attestation spdxjson ${image}@${digest%%:*}:${digest#*:} ok" \
+      || { status=failed; drill_log "verify-attestation spdxjson ${image}@${digest} FAILED"; }
   done
   rm -rf "${DOCKER_CONFIG}"; unset DOCKER_CONFIG
 done
