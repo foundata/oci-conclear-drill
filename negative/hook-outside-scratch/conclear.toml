@@ -1,0 +1,228 @@
+schema_version = 1
+
+[project]
+name = "oci-conclear-drill"
+source = "https://foundata.com/en/projects/oci-conclear-drill/#source"
+
+# Every drill release states its version in the changelog and as a Git tag.
+[[project.version_sources]]
+kind = "changelog"
+path = "CHANGELOG.md"
+
+[[project.version_sources]]
+kind = "git-tag"
+pattern = "v{version}"
+
+# -----------------------------------------------------------------------------
+# service: long-running process with health command, test material from the
+# helper image, functional sudo tests, a configuration exception and hooks.
+# -----------------------------------------------------------------------------
+[[images]]
+id = "service"
+repository = "quay.io/conclear-drill/drill-service"
+platforms = ["linux/amd64", "linux/arm64"]
+
+[images.test]
+dependencies = ["helper"]
+fixtures = [
+  { name = "input", path = "fixtures" },
+]
+outputs = [
+  { name = "secrets", secret = true },
+  { name = "public" },
+]
+
+[[images.test.preparations]]
+name = "prepare-material"
+image = "helper"
+command = ["/usr/local/lib/conclear-drill/helper-prepare.sh", "/input", "/secrets", "/public"]
+timeout_seconds = 60
+mounts = [
+  { name = "input", target = "/input" },
+  { name = "secrets", target = "/secrets", read_only = false },
+  { name = "public", target = "/public", read_only = false },
+]
+
+[images.test.launch]
+environment = { CONCLEAR_DRILL_MATERIAL = "/var/lib/conclear-drill/public/material.json" }
+mounts = [
+  { name = "public", target = "/var/lib/conclear-drill/public" },
+]
+
+[images.test.sudo]
+user = 1001
+denied_user = 65534
+command = ["/usr/bin/id", "-u"]
+expected_stdout = "0\n"
+
+[[images.hooks]]
+name = "inspect-layout"
+command = ["hooks/inspect-layout.sh"]
+timeout_seconds = 120
+
+[[images.hooks]]
+name = "run-from-layout"
+command = ["hooks/run-from-layout.sh"]
+timeout_seconds = 600
+
+[[images.hooks]]
+name = "litter-outside"
+command = ["hooks/litter-outside.sh"]
+timeout_seconds = 600
+
+[[images.hooks]]
+name = "optional-absent"
+command = ["hooks/absent.sh"]
+required = false
+
+[[images.pins]]
+reference = "docker.io/library/debian:13-slim"
+tag_intent = "moving-release-line"
+
+[[images.configuration_exceptions]]
+path = "usr/local/share/conclear-drill/examples/Dockerfile.example"
+rationale = "Example Dockerfile shipped as documentation data; it is not this image's build definition and is never built."
+owner = "foundata GmbH (https://foundata.com)"
+review_trigger = "Review when the example changes or the scanner's Dockerfile checks change."
+expires = "2027-09-30"
+
+[images.release]
+version_tags = ["{version}"]
+moving_tags = ["latest"]
+
+[images.runtime]
+profile = "service"
+user = 1001
+writable_mounts = ["/run/conclear-drill"]
+# Provisional until the first drill reports the observed footprint.
+memory = "128MiB"
+cpus = 1.0
+pids = 64
+nofile = 512
+health_command = ["/usr/local/lib/conclear-drill/healthcheck.sh"]
+# sudo changes user and group IDs; without these the escalation probe fails.
+capabilities = ["CAP_SETUID", "CAP_SETGID"]
+immutable_paths = ["/usr/local/lib/conclear-drill", "/usr/local/share/conclear-drill"]
+startup_timeout_seconds = 60
+shutdown_timeout_seconds = 15
+
+[images.runtime.sudo_requirement]
+mode = "escalation"
+scope = "Account 1001 may run /usr/bin/id -u as root; no other account may escalate."
+rationale = "Drill the functional sudo tests with a minimal, exactly declared policy."
+owner = "foundata GmbH (https://foundata.com)"
+review_trigger = "Review when the policy file, the accounts or the sudo package change."
+
+# -----------------------------------------------------------------------------
+# systemd: init process with one required drill unit and one declared set-ID
+# executable.
+# -----------------------------------------------------------------------------
+[[images]]
+id = "systemd"
+containerfile = "Containerfile.systemd"
+repository = "quay.io/conclear-drill/drill-systemd"
+# amd64 only: under user-mode emulation systemd as PID 1 does not act on
+# SIGRTMIN+3 (measured: still running 180 s after the signal), so an emulated
+# arm64 qualification can only fail its shutdown budget. Test arm64 natively.
+platforms = ["linux/amd64"]
+
+[[images.pins]]
+reference = "docker.io/library/debian:13-slim"
+tag_intent = "moving-release-line"
+
+[images.release]
+version_tags = ["{version}"]
+moving_tags = ["latest"]
+
+[images.runtime]
+profile = "systemd"
+user = 0
+writable_mounts = ["/sys/fs/cgroup/systemd", "/var/lib/journal"]
+# Provisional until the first drill reports the observed footprint.
+memory = "256MiB"
+cpus = 1.0
+pids = 256
+nofile = 2048
+health_command = ["/usr/bin/systemctl", "is-active", "--quiet", "conclear-drill.service"]
+# Generous on purpose: the drill qualifies arm64 through user-mode emulation,
+# where systemd starts and stops several times slower than natively.
+startup_timeout_seconds = 240
+shutdown_timeout_seconds = 90
+
+[images.runtime.root_requirement]
+rationale = "systemd is PID 1 and manages the drill unit; it must run as UID 0."
+owner = "foundata GmbH (https://foundata.com)"
+review_trigger = "Review when the init process or the runtime profile changes."
+
+[[images.runtime.setid_requirements]]
+path = "/usr/bin/su"
+rationale = "Kept deliberately as the one declared set-ID executable so the inventory check drills a declaration, not only stripped bits."
+owner = "foundata GmbH (https://foundata.com)"
+review_trigger = "Review when the base image changes or the drill no longer needs a declared executable."
+
+[images.runtime.systemd]
+required_units = ["multi-user.target", "conclear-drill.service"]
+
+# -----------------------------------------------------------------------------
+# oneshot: exits after processing the mounted fixture.
+# -----------------------------------------------------------------------------
+[[images]]
+id = "oneshot"
+containerfile = "Containerfile.oneshot"
+repository = "quay.io/conclear-drill/drill-oneshot"
+platforms = ["linux/amd64", "linux/arm64"]
+
+[images.test]
+fixtures = [
+  { name = "input", path = "fixtures" },
+]
+outputs = [
+  { name = "result" },
+]
+
+[images.test.launch]
+arguments = ["/input/input.json", "/output/result.json"]
+mounts = [
+  { name = "input", target = "/input" },
+  { name = "result", target = "/output", read_only = false },
+]
+
+[[images.pins]]
+reference = "docker.io/library/debian:13-slim"
+tag_intent = "moving-release-line"
+
+[images.release]
+version_tags = ["{version}"]
+moving_tags = ["latest"]
+
+[images.runtime]
+profile = "one-shot"
+user = 1001
+writable_mounts = ["/output"]
+memory = "64MiB"
+cpus = 1.0
+pids = 32
+nofile = 256
+startup_timeout_seconds = 60
+shutdown_timeout_seconds = 10
+
+# -----------------------------------------------------------------------------
+# helper: test-only image used by the service preparation step; never released.
+# -----------------------------------------------------------------------------
+[[images]]
+id = "helper"
+containerfile = "Containerfile.helper"
+platforms = ["linux/amd64", "linux/arm64"]
+
+[[images.pins]]
+reference = "docker.io/library/debian:13-slim"
+tag_intent = "moving-release-line"
+
+[images.runtime]
+profile = "one-shot"
+user = 1001
+writable_mounts = ["/secrets", "/public"]
+memory = "64MiB"
+cpus = 1.0
+pids = 32
+nofile = 256

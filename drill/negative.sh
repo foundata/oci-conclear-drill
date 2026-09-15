@@ -23,6 +23,27 @@ for case_dir in "${DRILL_REPOSITORY}"/negative/*/; do
   (cd "${target}" && drill_run "negative-${name}" "${DRILL_CLI}" qualify --revision "${revision}" --image "${image}" --platform linux/amd64 --version "${version}" --format json) && outcome=accepted || outcome=rejected
   found="$(jq -r '[.findings[]?.checkId] | unique | join(",")' "${DRILL_WORKSPACE}/artifacts/negative-${name}.json" 2>/dev/null || true)"
   message="$(jq -r '.message // ""' "${DRILL_WORKSPACE}/artifacts/negative-${name}.json" 2>/dev/null || true)"
+  if [ "${expect#retire:}" != "${expect}" ]; then
+    # Judged by cleanup: retiring the run must stop at content this user cannot
+    # remove and name it; the drill then removes it through the user namespace.
+    pattern="${expect#retire:}"
+    run_id="$(jq -r '.data.runId // empty' "${DRILL_WORKSPACE}/artifacts/negative-${name}.json" 2>/dev/null || true)"
+    if [ -z "${run_id}" ]; then
+      status=failed; drill_log "negative ${name}: no run to retire (outcome=${outcome})"; continue
+    fi
+    if (cd "${target}" && drill_run "negative-${name}-retire" "${DRILL_CLI}" cleanup "${run_id}" --retire --format json); then
+      status=failed; drill_log "negative ${name}: UNEXPECTED retire succeeded"; continue
+    fi
+    retire_message="$(jq -r '.message // ""' "${DRILL_WORKSPACE}/artifacts/negative-${name}-retire.json" 2>/dev/null || true)"
+    if printf '%s' "${retire_message}" | grep -q "retired only partially" && printf '%s' "${retire_message}" | grep -q "${pattern}"; then
+      drill_log "negative ${name}: retire stopped and named ${pattern} as expected"
+      podman unshare rm -rf "${XDG_STATE_HOME}/conclear/runs/${run_id}/checkout/.drill-litter" 2>/dev/null || true
+      (cd "${target}" && drill_run "negative-${name}-retire-again" "${DRILL_CLI}" cleanup "${run_id}" --retire --format json) || { status=failed; drill_log "negative ${name}: second retire FAILED"; }
+    else
+      status=failed; drill_log "negative ${name}: UNEXPECTED retire message: ${retire_message:0:200}"
+    fi
+    continue
+  fi
   if [ "${outcome}" = rejected ] && { [ "${found}" = "${expect}" ] || printf '%s' "${message}" | grep -q "${expect}"; }; then
     drill_log "negative ${name}: rejected by ${expect} as expected"
   else
