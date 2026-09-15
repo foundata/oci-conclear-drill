@@ -34,8 +34,12 @@ revision="$("${DRILL_CLI}" version --format json | jq -r .sourceRevision)"
 drill_log "candidate ${revision}"
 python3 - "${DRILL_MANIFEST}" "${revision}" <<'PY'
 import json, sys
+# The index may have been created by the operator, for instance when it also
+# serves as the resource manifest of ConClear's network tests, so the drill
+# adds its own keys instead of assuming it owns the file.
 path, revision = sys.argv[1:]
-manifest = json.load(open(path)); manifest["candidate"]["revision"] = revision
+manifest = json.load(open(path))
+manifest.setdefault("candidate", {})["revision"] = revision
 json.dump(manifest, open(path, "w"), indent=2, sort_keys=True)
 PY
 
