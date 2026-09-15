@@ -20,12 +20,14 @@ LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
 # digest, so this image runs no build step at all: package managers write logs
 # and status files whose content differs on every run. A distribution base is
 # unusable for a second reason: its packages accumulate fixable vulnerabilities
-# that only an upgrade fixes, and an upgrade is a build step. One static
-# BusyBox binary and two scripts are therefore copied onto an empty image.
-COPY --from=tools --chown=0:0 --chmod=0555 /bin/busybox /bin/busybox
+# that only an upgrade fixes, and an upgrade is a build step. BusyBox and its
+# applet links are therefore copied whole onto an empty image; ConClear's
+# runtime probes need a shell, `stat`, `readlink` and `sleep` inside the
+# container.
+COPY --from=tools --chown=0:0 /bin /bin
 COPY --chown=0:0 --chmod=0555 scripts/lifecycle-entrypoint.sh /usr/local/lib/conclear-drill/entrypoint.sh
 COPY --chown=0:0 --chmod=0555 scripts/lifecycle-healthcheck.sh /usr/local/lib/conclear-drill/healthcheck.sh
 
 USER 1001:1001
 
-ENTRYPOINT ["/bin/busybox", "sh", "/usr/local/lib/conclear-drill/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/lib/conclear-drill/entrypoint.sh"]

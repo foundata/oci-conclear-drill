@@ -1,4 +1,4 @@
-#!/bin/busybox sh
+#!/bin/sh
 # Lifecycle fixture: become ready by writing a marker into the declared
 # writable directory, then wait for SIGTERM and exit 0.
 set -eu
