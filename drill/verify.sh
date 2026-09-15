@@ -10,7 +10,7 @@ status=passed
 for image in service systemd oneshot; do
   reference="${DRILL_REGISTRY}/drill-${image}:${version}"
   if skopeo inspect --authfile "${auth}" --raw "docker://${reference}" > "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json" 2>>"${DRILL_WORKSPACE}/logs/verify.log"; then
-    jq -r '[.manifests[] | .platform.os + "/" + .platform.architecture] | join(",")' "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json" | xargs drill_log "${image} ${version} platforms:"
+    drill_log "${image} ${version} platforms: $(jq -r '[.manifests[]? | .platform.os + "/" + .platform.architecture] | join(",")' "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json")"
   else
     status=failed; drill_log "${image} ${version}: index not readable"
   fi
