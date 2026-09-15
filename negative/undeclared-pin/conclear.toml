@@ -85,11 +85,13 @@ moving_tags = ["latest"]
 profile = "service"
 user = 1001
 writable_mounts = ["/run/conclear-drill"]
-# Provisional until the first drill reports the observed footprint.
-memory = "128MiB"
+# Measured 2026-09-15 by the local drill: 4 MiB memory peak natively and 16 MiB
+# under arm64 emulation (page cache included), 6 tasks, 7 open files. The
+# margin leaves room for the emulator and for sudo's short-lived processes.
+memory = "64MiB"
 cpus = 1.0
-pids = 64
-nofile = 512
+pids = 32
+nofile = 128
 health_command = ["/usr/local/lib/conclear-drill/healthcheck.sh"]
 # sudo changes user and group IDs; without these the escalation probe fails.
 capabilities = ["CAP_SETUID", "CAP_SETGID"]
@@ -112,7 +114,10 @@ review_trigger = "Review when the policy file, the accounts or the sudo package 
 id = "systemd"
 containerfile = "Containerfile.systemd"
 repository = "quay.io/conclear-drill/drill-systemd"
-platforms = ["linux/amd64", "linux/arm64"]
+# amd64 only: under user-mode emulation systemd as PID 1 does not act on
+# SIGRTMIN+3 (measured: still running 180 s after the signal), so an emulated
+# arm64 qualification can only fail its shutdown budget. Test arm64 natively.
+platforms = ["linux/amd64"]
 
 [[images.pins]]
 reference = "docker.io/library/debian:13-slim"
@@ -126,14 +131,17 @@ moving_tags = ["latest"]
 profile = "systemd"
 user = 0
 writable_mounts = ["/sys/fs/cgroup/systemd", "/var/lib/journal"]
-# Provisional until the first drill reports the observed footprint.
-memory = "256MiB"
+# Measured 2026-09-15 by the local drill: 29 MiB memory peak (page cache
+# included), 13 tasks, 62 open files at multi-user.target with the drill unit.
+memory = "128MiB"
 cpus = 1.0
-pids = 256
-nofile = 2048
+pids = 64
+nofile = 256
 health_command = ["/usr/bin/systemctl", "is-active", "--quiet", "conclear-drill.service"]
-startup_timeout_seconds = 120
-shutdown_timeout_seconds = 30
+# Generous on purpose: the drill qualifies arm64 through user-mode emulation,
+# where systemd starts and stops several times slower than natively.
+startup_timeout_seconds = 240
+shutdown_timeout_seconds = 90
 
 [images.runtime.root_requirement]
 rationale = "systemd is PID 1 and manages the drill unit; it must run as UID 0."
@@ -185,6 +193,8 @@ moving_tags = ["latest"]
 profile = "one-shot"
 user = 1001
 writable_mounts = ["/output"]
+# One-shot containers exit before ConClear observes a footprint, so these stay
+# a generous estimate for a jq run over a small fixture.
 memory = "64MiB"
 cpus = 1.0
 pids = 32

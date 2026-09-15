@@ -62,11 +62,13 @@ moving_tags = ["latest"]
 profile = "service"
 user = 1001
 writable_mounts = ["/run/conclear-drill"]
-# Provisional until the first drill reports the observed footprint.
-memory = "128MiB"
+# Measured 2026-09-15 by the local drill: 4 MiB memory peak natively and 16 MiB
+# under arm64 emulation (page cache included), 6 tasks, 7 open files. The
+# margin leaves room for the emulator and for sudo's short-lived processes.
+memory = "64MiB"
 cpus = 1.0
-pids = 64
-nofile = 512
+pids = 32
+nofile = 128
 health_command = ["/usr/local/lib/conclear-drill/healthcheck.sh"]
 # sudo changes user and group IDs; without these the escalation probe fails.
 capabilities = ["CAP_SETUID", "CAP_SETGID"]
