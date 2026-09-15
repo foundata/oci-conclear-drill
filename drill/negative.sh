@@ -20,9 +20,17 @@ for case_dir in "${DRILL_REPOSITORY}"/negative/*/; do
     && git tag -f "v${version}" >/dev/null)
   revision="$(git -C "${target}" rev-parse HEAD)"
   image="$(cat "${case_dir}/image" 2>/dev/null || echo service)"
-  (cd "${target}" && drill_run "negative-${name}" "${DRILL_CLI}" qualify --revision "${revision}" --image "${image}" --platform linux/amd64 --version "${version}" --format json) && outcome=accepted || outcome=rejected
+  (cd "${target}" && drill_run "negative-${name}" "${DRILL_CLI}" qualify --revision "${revision}" --image "${image}" --platform linux/amd64 --version "${version}" --format json) || true
+  outcome="$(jq -r '.status // "none"' "${DRILL_WORKSPACE}/artifacts/negative-${name}.json" 2>/dev/null || echo none)"
   found="$(jq -r '[.findings[]?.checkId] | unique | join(",")' "${DRILL_WORKSPACE}/artifacts/negative-${name}.json" 2>/dev/null || true)"
   message="$(jq -r '.message // ""' "${DRILL_WORKSPACE}/artifacts/negative-${name}.json" 2>/dev/null || true)"
+  if [ "${outcome}" = operationalFailure ]; then
+    # The environment failed, not the case: a rate-limited registry, a missing
+    # tool or an unreachable service. Say so instead of claiming a wrong check.
+    status=failed
+    drill_log "negative ${name}: OPERATIONAL FAILURE, case not exercised: ${message:0:200}"
+    continue
+  fi
   if [ "${expect#retire:}" != "${expect}" ]; then
     # Judged by cleanup: retiring the run must stop at content this user cannot
     # remove and name it; the drill then removes it through the user namespace.
@@ -44,7 +52,7 @@ for case_dir in "${DRILL_REPOSITORY}"/negative/*/; do
     fi
     continue
   fi
-  if [ "${outcome}" = rejected ] && { [ "${found}" = "${expect}" ] || printf '%s' "${message}" | grep -q "${expect}"; }; then
+  if [ "${outcome}" = ruleRejection ] && { [ "${found}" = "${expect}" ] || printf '%s' "${message}" | grep -q "${expect}"; }; then
     drill_log "negative ${name}: rejected by ${expect} as expected"
   else
     status=failed; drill_log "negative ${name}: UNEXPECTED outcome=${outcome} checks=${found} message=${message:0:160} (expected ${expect})"

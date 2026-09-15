@@ -33,6 +33,15 @@ release procedure relies on; nothing here depends on another product.
   up before anything is built.
 - **[`uv`](https://docs.astral.sh/uv/)** to install the candidate wheel into a
   private environment, and `jq`.
+- **Docker Hub pull budget.** Every image builds from
+  `docker.io/library/debian:13-slim`, and each run resolves and pulls it into
+  its own private store, so one drill spends roughly ten anonymous Docker Hub
+  pulls. Docker Hub rate-limits anonymous pulls per address, and repeated
+  drills exhaust that budget; the symptom is
+  `toomanyrequests: You have reached your unauthenticated pull rate limit`
+  reported as an operational failure. Authenticate the drill host to Docker
+  Hub, or mirror the base image into the drill's own registry namespace and
+  pin the mirror.
 - **arm64 emulation** (`qemu-user-static` with `binfmt_misc`) when the host is
   x86_64; every image declares both platforms and the drill qualifies both.
   The handler needs the `C` flag, otherwise set-user-ID binaries such as
