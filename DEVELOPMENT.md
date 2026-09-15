@@ -254,7 +254,7 @@ file; `image` selects a different image than `service`.
 | `stale-setid`          | `CC0406` | `su` is declared but its bit was stripped (`systemd` image) |
 | `expired-exception`    | `CC0503` | The configuration exception expired |
 | `version-mismatch`     | `CC0005` | The changelog names another version than the release |
-| `hook-outside-scratch` | retire   | A hook leaves a rootless store below the checkout; `cleanup --retire` must stop and name it |
+| `hook-outside-scratch` | retire   | A hook writes subordinate-owned files below the checkout; `cleanup --retire` must stop, name the cause and ask for `--abandon` |
 
 The `run-from-layout` hook of the positive path leaves a rootless container
 store in its scratch directory on purpose; ConClear's removal of that store
