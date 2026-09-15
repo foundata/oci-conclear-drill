@@ -5,13 +5,14 @@
 # and a tag for the scenario version, and the disposable repository.
 # usage: lifecycle-fixture.sh --workspace <dir> --version <x.y.z> [--registry <namespace>]
 set -euo pipefail
-workspace=""; version=""; registry="quay.io/conclear-drill"
+workspace=""; version=""; registry="quay.io/conclear-drill"; repository=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --workspace) workspace="$2"; shift 2 ;;
     --version) version="$2"; shift 2 ;;
     --registry) registry="$2"; shift 2 ;;
-    *) printf 'usage: %s --workspace <dir> --version <x.y.z> [--registry <namespace>]\n' "${0##*/}" >&2; exit 64 ;;
+    --repository) repository="$2"; shift 2 ;;
+    *) printf 'usage: %s --workspace <dir> --version <x.y.z> [--registry <namespace>] [--repository <reference>]\n' "${0##*/}" >&2; exit 64 ;;
   esac
 done
 [ -n "${workspace}" ] && [ -n "${version}" ] || { printf 'workspace and version are required\n' >&2; exit 64; }
@@ -23,7 +24,13 @@ git -C "${target}" remote set-url origin https://github.com/foundata/oci-conclea
 (
   cd "${target}"
   cp lifecycle/conclear.toml conclear.toml
-  sed -i "s|quay.io/conclear-drill/|${registry}/|g" conclear.toml
+  if [ -n "${repository}" ]; then
+    # The lifecycle test needs a repository its resource manifest owns, which
+    # need not follow the drill naming.
+    sed -i "s|^repository = .*|repository = \"${repository}\"|" conclear.toml
+  else
+    sed -i "s|quay.io/conclear-drill/|${registry}/|g" conclear.toml
+  fi
   python3 - "${version}" <<'PY'
 import sys
 from datetime import date

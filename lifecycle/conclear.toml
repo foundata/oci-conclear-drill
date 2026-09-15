@@ -1,58 +1,27 @@
+# Single-image configuration for ConClear's repeat-release lifecycle network
+# test. `drill/lifecycle-fixture.sh` installs it as the `conclear.toml` of a
+# throwaway clone. The image is deliberately minimal and deterministic: the
+# test releases the same revision and version twice and requires an identical
+# image digest.
 schema_version = 1
 
 [project]
 name = "oci-conclear-drill"
 source = "https://foundata.com/en/projects/oci-conclear-drill/#source"
 
-# Every drill release states its version in the changelog and as a Git tag.
 [[project.version_sources]]
 kind = "changelog"
 path = "CHANGELOG.md"
 
-[[project.version_sources]]
-kind = "git-tag"
-pattern = "v{version}"
-
-# -----------------------------------------------------------------------------
-# service: long-running process with health command, test material from the
-# helper image, functional sudo tests, a configuration exception and hooks.
-# -----------------------------------------------------------------------------
 [[images]]
-id = "service"
-repository = "quay.io/conclear-drill/drill-service"
-platforms = ["linux/amd64", "linux/arm64"]
-
-[images.test.sudo]
-user = 1001
-denied_user = 65534
-command = ["/usr/bin/id", "-u"]
-expected_stdout = "0\n"
-
-[[images.hooks]]
-name = "inspect-layout"
-command = ["hooks/inspect-layout.sh"]
-timeout_seconds = 120
-
-[[images.hooks]]
-name = "run-from-layout"
-command = ["hooks/run-from-layout.sh"]
-timeout_seconds = 600
-
-[[images.hooks]]
-name = "optional-absent"
-command = ["hooks/absent.sh"]
-required = false
+id = "lifecycle"
+containerfile = "Containerfile.lifecycle"
+repository = "quay.io/conclear-drill/drill-lifecycle"
+platforms = ["linux/amd64"]
 
 [[images.pins]]
 reference = "docker.io/library/debian:13-slim"
 tag_intent = "moving-release-line"
-
-[[images.configuration_exceptions]]
-path = "usr/local/share/conclear-drill/examples/Dockerfile.example"
-rationale = "Example Dockerfile shipped as documentation data; it is not this image's build definition and is never built."
-owner = "foundata GmbH (https://foundata.com)"
-review_trigger = "Review when the example changes or the scanner's Dockerfile checks change."
-expires = "2027-09-30"
 
 [images.release]
 version_tags = ["{version}"]
@@ -62,25 +31,12 @@ moving_tags = ["latest"]
 profile = "service"
 user = 1001
 writable_mounts = ["/run/conclear-drill"]
-# Measured 2026-09-15 by the local drill: 4 MiB memory peak natively and 16 MiB
-# under arm64 emulation (page cache included), 6 tasks, 7 open files. The
-# margin leaves room for the emulator and for sudo's short-lived processes.
+# Measured 2026-09-15: the same process set as the service image without sudo.
 memory = "64MiB"
 cpus = 1.0
 pids = 32
 nofile = 128
 health_command = ["/usr/local/lib/conclear-drill/healthcheck.sh"]
-# sudo changes user and group IDs; without these the escalation probe fails.
-capabilities = ["CAP_SETUID", "CAP_SETGID"]
-immutable_paths = ["/usr/local/lib/conclear-drill", "/usr/local/share/conclear-drill"]
+immutable_paths = ["/usr/local/lib/conclear-drill"]
 startup_timeout_seconds = 60
 shutdown_timeout_seconds = 15
-
-[images.runtime.sudo_requirement]
-mode = "escalation"
-scope = "Account 1001 may run /usr/bin/id -u as root; no other account may escalate."
-rationale = "Drill the functional sudo tests with a minimal, exactly declared policy."
-owner = "foundata GmbH (https://foundata.com)"
-review_trigger = "Review when the policy file, the accounts or the sudo package change."
-
-

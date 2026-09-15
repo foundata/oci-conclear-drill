@@ -50,12 +50,13 @@ All images build from `docker.io/library/debian:13-slim` for `linux/amd64` and
 on its stop signal, so that image is qualified on amd64 only until a native
 arm64 host is available.
 
-|   Image   |  Profile   | Purpose |
-| --------- | ---------- | ------- |
-| `service` | `service`  | Long-running process with a health command, generated test material, functional sudo tests, hooks and a configuration exception |
-| `systemd` | `systemd`  | `systemd` as PID 1 with one required drill unit and one declared set-ID executable |
-| `oneshot` | `one-shot` | Processes a mounted fixture and exits |
-| `helper`  | test-only  | Preparation step of `service`: derives one secret and one public file; never released |
+|    Image    |  Profile   | Purpose |
+| ----------- | ---------- | ------- |
+| `service`   | `service`  | Long-running process with a health command, generated test material, functional sudo tests, hooks and a configuration exception |
+| `systemd`   | `systemd`  | `systemd` as PID 1 with one required drill unit and one declared set-ID executable |
+| `lifecycle` | `service`  | Deterministic single-image fixture for ConClear's repeat-release test, built only through `drill/lifecycle-fixture.sh` |
+| `oneshot`   | `one-shot` | Processes a mounted fixture and exits |
+| `helper`    | test-only  | Preparation step of `service`: derives one secret and one public file; never released |
 
 Released images land in `quay.io/conclear-drill/drill-<image>` and carry
 throwaway versions. Nothing in that registry is meant to be consumed.

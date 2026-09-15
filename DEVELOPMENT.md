@@ -55,6 +55,7 @@ release procedure relies on; nothing here depends on another product.
 
 ```text
 Containerfile            service image (health command, sudo policy, example data)
+Containerfile.lifecycle  deterministic fixture for the repeat-release test
 Containerfile.systemd    systemd image with the drill unit
 Containerfile.oneshot    one-shot image
 Containerfile.helper     test-only helper that prepares test material
@@ -254,10 +255,16 @@ through the container user namespace is part of every drill.
 ### Lifecycle fixture<a id="lifecycle-fixture"></a>
 
 ConClear's repeat-release network test needs a fixture with exactly one release
-image. `drill/lifecycle-fixture.sh --workspace <dir> --version <x.y.z>` clones
-this repository, installs `lifecycle/conclear.toml`, adds the changelog heading
-and tag for the version and prints the fixture path for the test's scenario
-file.
+image that rebuilds to the same digest. `Containerfile.lifecycle` is that
+image: it installs nothing, because package managers write logs and status
+files whose content changes with every build, and only strips inherited set-ID
+bits and copies two scripts.
+
+`drill/lifecycle-fixture.sh --workspace <dir> --version <x.y.z>` clones this
+repository, installs `lifecycle/conclear.toml`, adds the changelog heading and
+tag for the version and prints the fixture path for the test's scenario file.
+Add `--repository <reference>` when the test's resource manifest owns a
+repository outside the drill namespace.
 
 
 ### After the drill<a id="drill-cleanup"></a>
