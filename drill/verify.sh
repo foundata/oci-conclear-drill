@@ -20,8 +20,12 @@ for image in service systemd oneshot; do
     && drill_log "verify-attestation slsaprovenance1 ${image} ok" \
     || { status=failed; drill_log "verify-attestation slsaprovenance1 ${image} FAILED"; }
   # The SBOM is attached to each platform manifest, not to the index, so it is
-  # verified exactly the way ConClear's README tells consumers to.
-  for digest in $(jq -r '.manifests[]?.digest // empty' "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json" 2>/dev/null); do
+  # verified exactly the way ConClear's README tells consumers to. A
+  # single-platform image has no index: its own digest is the manifest digest.
+  digests="$(jq -r '.manifests[]?.digest // empty' "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json" 2>/dev/null)"
+  [ -n "${digests}" ] || digests="$(skopeo inspect --authfile "${auth}" --format '{{.Digest}}' "docker://${reference}" 2>>"${DRILL_WORKSPACE}/logs/verify.log")"
+  [ -n "${digests}" ] || { status=failed; drill_log "no manifest digest for ${image}"; }
+  for digest in ${digests}; do
     cosign verify-attestation --key "${public_key}" --type spdxjson "${DRILL_REGISTRY}/drill-${image}@${digest}" > /dev/null 2>>"${DRILL_WORKSPACE}/logs/verify.log" \
       && drill_log "verify-attestation spdxjson ${image}@${digest%%:*}:${digest#*:} ok" \
       || { status=failed; drill_log "verify-attestation spdxjson ${image}@${digest} FAILED"; }
