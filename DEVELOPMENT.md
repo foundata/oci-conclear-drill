@@ -187,12 +187,22 @@ The drill needs, once:
 
 - A registry organisation (default `quay.io/conclear-drill`) with the
   repositories `drill-service`, `drill-systemd` and `drill-oneshot`.
-- A robot account with admin permission on those repositories and an OAuth
-  application token with repository administration scope, both stored as
-  ConClear expects in a release profile named `drill` under
-  `<workspace>/consumer/config/conclear/`, together with a disposable Cosign key
-  pair (`drill-cosign.key`, `drill-cosign.pub`), its passphrase file and the
-  robot's auth file (`drill-auth.json`).
+- A robot account with admin permission on those repositories, an OAuth
+  application token with repository administration scope, and a disposable
+  Cosign key pair with its passphrase.
+
+Put those five files into one directory outside any checkout, named
+`auth.json`, `quay-api.token`, `cosign.key`, `cosign.pub` and
+`cosign-passphrase`, then render the profile into the workspace:
+
+```sh
+drill/profile.sh --workspace "${workspace}" --credentials "${credentials}"
+```
+
+It installs the credentials under the names the drill scripts expect and writes
+the `drill` profile from
+[`drill/profile-template.toml`](drill/profile-template.toml). Run it before
+`prepare.sh`; both are idempotent.
 
 Nothing in that organisation is meant to be consumed. `prepare.sh` does not
 empty the repositories; run `conclear cleanup` on leftover runs and delete stray

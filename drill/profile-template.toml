@@ -1,0 +1,30 @@
+# Release profile template for a drill. `drill/profile.sh` renders it into the
+# workspace; every path below is filled in from the workspace and the operator's
+# credential directory. Nothing here is a secret: the credentials stay in the
+# files this template points at.
+schema_version = 1
+ci_context = "omit"
+allowed_source_origins = ["https://github.com/foundata/"]
+auth_file = "@CONFIG@/drill-auth.json"
+cosign_private_key = "@CONFIG@/drill-cosign.key"
+cosign_public_key = "@CONFIG@/drill-cosign.pub"
+passphrase_file = "@CONFIG@/drill-cosign-passphrase"
+archive_dir = "@WORKSPACE@/archives"
+
+[builder]
+id = "@BUILDER_ID@"
+
+[registry]
+provider = "quay"
+host = "@REGISTRY_HOST@"
+token_file = "@CONFIG@/drill-quay-api.token"
+
+[registry.tag_protection]
+mode = "not-enforced"
+rationale = "The disposable drill repositories carry no consumed tags; protection is exercised by the tag-policy tests, not by the drill."
+owner = "Drill operator"
+
+[registry.candidate_cleanup]
+mode = "tag-expiration"
+owner = "Drill operator"
+procedure = "conclear cleanup retires abandoned drill runs; the disposable repositories are emptied before every drill."
