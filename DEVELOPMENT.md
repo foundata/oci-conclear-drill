@@ -100,16 +100,16 @@ drill/                   the drill scripts and shared library
 ### Markdown formatting and linting<a id="markdown-linting"></a>
 
 Documentation follows foundata's
-[Markdown style guide](https://github.com/foundata/guidelines/blob/master/markdown-style-guide.md).
+[Markdown style guide](https://github.com/foundata/guidelines/blob/main/markdown-style-guide.md).
 Use the `rumdl` invocation from its
-[Linting and automatic formatting](https://github.com/foundata/guidelines/blob/master/markdown-style-guide.md#linting-and-automatic-formatting)
+[Linting and automatic formatting](https://github.com/foundata/guidelines/blob/main/markdown-style-guide.md#linting-and-automatic-formatting)
 section; this repository has no local `rumdl` configuration.
 
 
 ### Commit messages and scopes<a id="commit-scopes"></a>
 
 Commit messages follow the foundata guideline
-([`guidelines/git-commits.md`](https://github.com/foundata/guidelines/blob/master/git-commits.md)):
+([`guidelines/git-commits.md`](https://github.com/foundata/guidelines/blob/main/git-commits.md)):
 `<scope>: <description>`, imperative, lowercase description, body only for
 context the diff cannot preserve. Scopes in use:
 
