@@ -92,6 +92,25 @@ for item in data["images"]:
 PY
 }
 
+# drill_run_java <name> <command...>: run a command that assesses the java
+# image. While upstream's Java database has expired, ConClear must first reject
+# the image with CC0507; the retry with --accept-stale-java-database must then
+# pass and record the acceptance. With a fresh Java database the plain run
+# passes. Any other rejection fails. Sets DRILL_JAVA_ACCEPTED to yes or no.
+drill_run_java() {
+  local name="$1"; shift
+  DRILL_JAVA_ACCEPTED=no
+  if drill_run "${name}" "$@"; then
+    return 0
+  fi
+  if [ "$(drill_json "${name}" '[.findings[]?.checkId] | index("CC0507") != null')" != true ]; then
+    return 1
+  fi
+  drill_log "${name}: rejected by CC0507 while the Java database is expired, as expected; retrying with the recorded acceptance"
+  DRILL_JAVA_ACCEPTED=yes
+  drill_run "${name}-accepted" "$@" --accept-stale-java-database
+}
+
 # drill_source_revision: the head of the throwaway drill clone.
 drill_source_revision() {
   git -C "${DRILL_WORKSPACE}/project" rev-parse HEAD

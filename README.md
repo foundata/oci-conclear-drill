@@ -56,6 +56,7 @@ arm64 host is available.
 | `systemd`   | `systemd`  | `systemd` as PID 1 with one required drill unit and one declared set-ID executable |
 | `lifecycle` | `service`  | Deterministic single-image fixture for ConClear's repeat-release test, built only through `drill/lifecycle-fixture.sh` |
 | `oneshot`   | `one-shot` | Processes a mounted fixture and exits |
+| `java`      | `one-shot` | Carries one Maven artifact and nothing else, so the scanner's Java database matters to it alone; while that database has expired upstream, it must reject with `CC0507` and pass with `--accept-stale-java-database` |
 | `helper`    | test-only  | Preparation step of `service`: derives one secret and one public file; never released |
 
 Released images land in `quay.io/conclear-drill/drill-<image>` and carry
@@ -75,6 +76,12 @@ declared exception, SBOM generation, publication, attestation, verification,
 promotion, candidate cleanup, archives and rescans. The composable path runs
 `qualify` and `transport export` per worker, then `assemble`, `provenance`,
 `publish`, `attest`, `verify` and `promote` as separate invocations.
+
+The `java` image gives the scanner's Java database a subject. Whenever upstream
+has let that database expire, its qualification, release and rescan must reject
+with `CC0507` first and pass with `--accept-stale-java-database` second, and
+every record must carry the acceptance; the three images without Java must pass
+regardless. With a fresh Java database the plain runs pass.
 
 The negative cases under [`negative/`](negative/) each carry exactly one
 defect and must be rejected by exactly the expected check. See
@@ -104,13 +111,14 @@ are.
 `run.sh` executes these stages in order and stops at the first failure:
 
 1. Installed identity, `check` and `pins check` for every image.
-2. Local qualification of `service`, `systemd` and `oneshot` on both platforms
-   without a registry.
+2. Local qualification of `service`, `systemd`, `oneshot` and `java` on both
+   platforms without a registry.
 3. `release` of `service`.
 4. The composable path on `systemd`: `qualify` and `transport export` per
    platform, then `assemble`, `provenance`, `publish`, `attest`, `verify` and
    `promote` as separate invocations.
-5. `release` of `oneshot`, then every negative case.
+5. `release` of `oneshot`.
+6. `release` of `java`, then every negative case.
 
 `verify.sh` reads every promoted index, verifies signatures and attestations
 with the drill public key, verifies every archive, runs one authoritative

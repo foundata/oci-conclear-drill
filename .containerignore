@@ -3,6 +3,7 @@
 !Containerfile.lifecycle
 !Containerfile.systemd
 !Containerfile.oneshot
+!Containerfile.java
 !Containerfile.helper
 !sudoers
 !scripts/

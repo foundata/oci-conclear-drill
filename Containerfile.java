@@ -1,0 +1,51 @@
+FROM docker.io/library/debian:13-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+# The jar states its own Maven coordinates, the way a published artifact does,
+# so Trivy inventories it without consulting its Java database. The class entry
+# only makes the archive look like a jar to the analyzer; nothing runs it.
+WORKDIR /build
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends zip \
+  && rm -rf /var/lib/apt/lists/* \
+  && install -d META-INF/maven/com.example.drill/library com/example/drill \
+  && printf 'Manifest-Version: 1.0\n' > META-INF/MANIFEST.MF \
+  && printf 'groupId=com.example.drill\nartifactId=library\nversion=1.2.3\n' \
+       > META-INF/maven/com.example.drill/library/pom.properties \
+  && printf '\312\376\272\276' > com/example/drill/Library.class \
+  && zip -q -X -r /library-1.2.3.jar META-INF com
+
+FROM docker.io/library/debian:13-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 AS runtime
+
+ARG IMAGE_CREATED
+ARG IMAGE_REVISION
+ARG IMAGE_VERSION
+
+LABEL org.opencontainers.image.title="ConClear Drill: java"
+LABEL org.opencontainers.image.description="Synthetic image carrying one Maven artifact so the Java database checks of ConClear are exercised; not for production use"
+LABEL org.opencontainers.image.vendor="foundata GmbH"
+LABEL org.opencontainers.image.source="https://foundata.com/en/projects/oci-conclear-drill/#source"
+LABEL org.opencontainers.image.url="https://foundata.com/en/projects/oci-conclear-drill/"
+LABEL org.opencontainers.image.documentation="https://foundata.com/en/projects/oci-conclear-drill/#doc"
+LABEL org.opencontainers.image.created="${IMAGE_CREATED}"
+LABEL org.opencontainers.image.revision="${IMAGE_REVISION}"
+LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
+
+ARG DEBIAN_FRONTEND=noninteractive
+# No Java runtime: the artifact is inventoried, never executed. All set-ID bits
+# are stripped.
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man \
+  && groupadd --gid 1001 drill \
+  && useradd --uid 1001 --gid 1001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin drill \
+  && find / -xdev -type f -perm /6000 -exec chmod a-s {} + \
+  && install -d -m 0755 /usr/local/lib/conclear-drill /opt/drill
+
+COPY --from=builder --chown=0:0 --chmod=0444 /library-1.2.3.jar /opt/drill/library-1.2.3.jar
+COPY --chown=0:0 --chmod=0555 scripts/java.sh /usr/local/lib/conclear-drill/java.sh
+
+USER 1001:1001
+
+ENTRYPOINT ["/usr/local/lib/conclear-drill/java.sh"]

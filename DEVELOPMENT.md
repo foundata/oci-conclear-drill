@@ -199,7 +199,8 @@ itself may be deleted after `verify.sh` retired the runs.
 The drill needs, once:
 
 - A registry organisation (default `quay.io/conclear-drill`) with the
-  repositories `drill-service`, `drill-systemd` and `drill-oneshot`.
+  repositories `drill-service`, `drill-systemd`, `drill-oneshot` and
+  `drill-java`.
 - A robot account with admin permission on those repositories, an OAuth
   application token with repository administration scope, and a disposable
   Cosign key pair with its passphrase.
@@ -227,15 +228,22 @@ tags with the registry API before a drill when a previous run was interrupted.
 `run.sh` executes, in dependency order, and stops at the first failed stage:
 
 1. Installed identity, `check` and `pins check` for every image.
-2. Local qualification of `service`, `systemd` and `oneshot` on their declared
-   platforms without a profile: build, runtime tests, footprint, set-ID
-   inventory, sudo tests, hooks, scans, SBOM. Needs no registry. `systemd`
-   declares amd64 only, see the comment in `conclear.toml`.
+2. Local qualification of `service`, `systemd`, `oneshot` and `java` on their
+   declared platforms without a profile: build, runtime tests, footprint,
+   set-ID inventory, sudo tests, hooks, scans, SBOM. Needs no registry.
+   `systemd` declares amd64 only, see the comment in `conclear.toml`.
 3. Part A: `release` of `service`.
 4. Part B: the composable path on `systemd`: `qualify` and `transport export`
    per platform, then `assemble`, `provenance`, `publish`, `attest`, `verify`
    and `promote` as separate invocations.
-5. Part C: `release` of `oneshot`, then every negative case.
+5. Part C: `release` of `oneshot`.
+6. Part D: `release` of `java`, then every negative case.
+
+Every assessment of `java` goes through `drill_run_java` in `drill/lib.sh`. It
+runs the command once; a `CC0507` rejection is expected whenever upstream's
+Java database has expired and is followed by one retry with
+`--accept-stale-java-database`, which must pass. Any other rejection fails the
+stage. The recorded stage result says whether the acceptance path was taken.
 
 `verify.sh` then reads every promoted index with `skopeo`, verifies signatures
 and the SBOM and provenance attestations with `cosign` and the drill public key,

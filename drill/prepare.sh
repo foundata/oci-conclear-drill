@@ -19,7 +19,7 @@ json.dump({
     "purpose": "ConClear release drill; see DEVELOPMENT.md of oci-conclear-drill",
     "created": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "candidate": {"wheel": wheel, "wheel_sha256": "sha256:" + digest},
-    "registry": {"namespace": registry, "repositories": [f"{registry}/drill-service", f"{registry}/drill-systemd", f"{registry}/drill-oneshot"]},
+    "registry": {"namespace": registry, "repositories": [f"{registry}/drill-service", f"{registry}/drill-systemd", f"{registry}/drill-oneshot", f"{registry}/drill-java"]},
     "results": {},
     "observations": [],
 }, open(path, "w"), indent=2, sort_keys=True)
@@ -64,11 +64,14 @@ import sys
 from pathlib import Path
 version = sys.argv[1]
 path = Path("CHANGELOG.md"); text = path.read_text(encoding="utf-8")
-marker = "## [Unreleased]\n\n- Nothing worth mentioning right now.\n"
-assert marker in text
+# The heading goes right after the Unreleased section, whatever it holds.
+head, marker, rest = text.partition("\n## [Unreleased]\n")
+assert marker, "CHANGELOG.md has no Unreleased section"
+next_release = rest.find("\n## [")
+assert next_release != -1, "CHANGELOG.md has no released section after Unreleased"
 from datetime import date
-entry = marker + f"\n\n## [{version}] - {date.today().isoformat()}\n\n### Added\n\n- Drill release {version}.\n"
-path.write_text(text.replace(marker, entry, 1), encoding="utf-8")
+entry = f"\n## [{version}] - {date.today().isoformat()}\n\n### Added\n\n- Drill release {version}.\n\n"
+path.write_text(head + marker + rest[:next_release] + entry + rest[next_release:], encoding="utf-8")
 PY
   git -c user.name="ConClear drill" -c user.email="drill@invalid" commit -q -am "drill: release ${DRILL_VERSION} into ${DRILL_REGISTRY}"
   git tag "v${DRILL_VERSION}"

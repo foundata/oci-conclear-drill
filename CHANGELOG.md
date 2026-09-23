@@ -11,7 +11,13 @@ that adds the matching heading; those headings never land on `main`.
 
 ## [Unreleased]
 
-- Nothing worth mentioning right now.
+### Added
+
+- The `java` image: one Maven artifact and no Java runtime, so ConClear's Java
+  database check (`CC0507`) has a subject in every drill. While upstream's Java
+  database has expired, its qualification, release and rescan must reject first
+  and pass with `--accept-stale-java-database` second. Needs the repository
+  `drill-java` in the drill registry.
 
 
 ## [0.1.0] - 2026-09-15

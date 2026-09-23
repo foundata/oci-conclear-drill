@@ -7,7 +7,7 @@ version="$(cat "${DRILL_WORKSPACE}/drill-version.current")"
 auth="${XDG_CONFIG_HOME}/conclear/drill-auth.json"
 public_key="${XDG_CONFIG_HOME}/conclear/drill-cosign.pub"
 status=passed
-for image in service systemd oneshot; do
+for image in service systemd oneshot java; do
   reference="${DRILL_REGISTRY}/drill-${image}:${version}"
   if skopeo inspect --authfile "${auth}" --raw "docker://${reference}" > "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json" 2>>"${DRILL_WORKSPACE}/logs/verify.log"; then
     drill_log "${image} ${version} platforms: $(jq -r '[.manifests[]? | .platform.os + "/" + .platform.architecture] | join(",")' "${DRILL_WORKSPACE}/artifacts/verify-${image}-index.json")"
@@ -39,7 +39,9 @@ for archive in "${DRILL_WORKSPACE}"/archives/release-*.tar.gz; do
 done
 latest="$(ls -t "${DRILL_WORKSPACE}"/archives/release-*.tar.gz 2>/dev/null | head -1 || true)"
 if [ -n "${latest}" ]; then
-  drill_run rescan "${DRILL_CLI}" rescan --archive "${latest}" --profile "${DRILL_PROFILE}" --authoritative --format json || status=failed
+  # The latest archive is the java release, so an expired Java database makes
+  # this rescan take the CC0507 path too.
+  drill_run_java rescan "${DRILL_CLI}" rescan --archive "${latest}" --profile "${DRILL_PROFILE}" --authoritative --format json || status=failed
 fi
 drill_record verify "${status}" "$(jq -cn --arg v "${version}" '{version: $v}')"
 # Cleanup: retire every run of this drill; the disposable repositories keep the

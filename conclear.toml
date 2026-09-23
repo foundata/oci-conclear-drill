@@ -207,6 +207,40 @@ startup_timeout_seconds = 60
 shutdown_timeout_seconds = 10
 
 # -----------------------------------------------------------------------------
+# java: one Maven artifact and nothing else the scanner's Java database is for.
+# The jar carries its own coordinates, so scans succeed offline. What the image
+# drills is CC0507: while upstream's Java database has expired, this is the one
+# image whose qualification must reject without --accept-stale-java-database
+# and pass with it; the other images must never be affected.
+# -----------------------------------------------------------------------------
+[[images]]
+id = "java"
+containerfile = "Containerfile.java"
+repository = "quay.io/conclear-drill/drill-java"
+platforms = ["linux/amd64", "linux/arm64"]
+
+[[images.pins]]
+reference = "docker.io/library/debian:13-slim"
+tag_intent = "moving-release-line"
+
+[images.release]
+version_tags = ["{version}"]
+moving_tags = ["latest"]
+
+[images.runtime]
+profile = "one-shot"
+user = 1001
+writable_mounts = []
+# The entrypoint only confirms the jar is present; a shell and wc are all it
+# runs.
+memory = "64MiB"
+cpus = 1.0
+pids = 32
+nofile = 256
+startup_timeout_seconds = 60
+shutdown_timeout_seconds = 10
+
+# -----------------------------------------------------------------------------
 # helper: test-only image used by the service preparation step; never released.
 # -----------------------------------------------------------------------------
 [[images]]

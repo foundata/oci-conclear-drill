@@ -9,20 +9,21 @@ revision="$(drill_source_revision)"
 
 # 1. Installed identity and static checks for every image.
 drill_run identity "${DRILL_CLI}" version --format json
-for image in service systemd oneshot helper; do
+for image in service systemd oneshot java helper; do
   drill_run "check-${image}" "${DRILL_CLI}" check --image "${image}" --format json || true
   drill_run "pins-check-${image}" "${DRILL_CLI}" pins check --image "${image}" --format json || true
 done
-drill_record static "$( for i in service systemd oneshot helper; do drill_json "check-${i}" .status; drill_json "pins-check-${i}" .status; done | grep -qv '^success$' && echo failed || echo passed)" \
+drill_record static "$( for i in service systemd oneshot java helper; do drill_json "check-${i}" .status; drill_json "pins-check-${i}" .status; done | grep -qv '^success$' && echo failed || echo passed)" \
   "$(jq -cn '{}')"
 
 # 2. Local qualification of every release image and platform without a profile:
 #    build, runtime tests, scans, SBOM, set-ID inventory, footprint. No registry.
 status=passed
-for image in service systemd oneshot; do
+for image in service systemd oneshot java; do
   for platform in $(drill_platforms "${image}"); do
     name="qualify-local-${image}-${platform//\//-}"
-    if drill_run "${name}" "${DRILL_CLI}" qualify --revision "${revision}" --image "${image}" --platform "${platform}" --version "${version}" --format json; then
+    runner=drill_run; [ "${image}" = java ] && runner=drill_run_java
+    if "${runner}" "${name}" "${DRILL_CLI}" qualify --revision "${revision}" --image "${image}" --platform "${platform}" --version "${version}" --format json; then
       drill_log "${name}: $(drill_json "${name}" '.details // [] | join("; ")')"
     else
       status=failed; drill_log "${name} FAILED: $(drill_json "${name}" '[.findings[]? | .checkId + " " + .message] | join("; ")')"
@@ -73,6 +74,16 @@ done
 drill_run b-promote "${DRILL_CLI}" promote "${coordinator}" --profile "${DRILL_PROFILE}" --version "${version}" --format json || exit 1
 drill_record composable passed "$(jq -cn --arg c "${coordinator}" '{coordinator: $c}')"
 
-# 5. Part C: one-shot release, then the negative cases.
+# 5. Part C: one-shot release.
 drill_run release-oneshot "${DRILL_CLI}" release --revision "${revision}" --image oneshot --version "${version}" --profile "${DRILL_PROFILE}" --format json && drill_record release-oneshot passed "$(drill_json release-oneshot '.data')" || drill_record release-oneshot failed "$(drill_json release-oneshot '{message, findings}')"
+
+# 6. Part D: release of the java image, last so that its archive is the one
+#    verify.sh rescans. See drill_run_java for the expired-database path.
+if drill_run_java release-java "${DRILL_CLI}" release --revision "${revision}" --image java --version "${version}" --profile "${DRILL_PROFILE}" --format json; then
+  drill_record release-java passed "$(jq -cn --arg a "${DRILL_JAVA_ACCEPTED}" '{acceptedStaleJavaDatabase: ($a == "yes")}')"
+else
+  drill_record release-java failed "$(drill_json "release-java$([ "${DRILL_JAVA_ACCEPTED}" = yes ] && printf -- -accepted)" '{message, findings}')"
+fi
+
+# 7. Every negative case.
 "$(dirname "${BASH_SOURCE[0]}")/negative.sh" --workspace "${DRILL_WORKSPACE}" --registry "${DRILL_REGISTRY}" --profile "${DRILL_PROFILE}"
