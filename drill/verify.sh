@@ -45,10 +45,12 @@ if [ -n "${latest}" ]; then
 fi
 drill_record verify "${status}" "$(jq -cn --arg v "${version}" '{version: $v}')"
 # Cleanup: retire every run of this drill; the disposable repositories keep the
-# promoted tags until the next prepare empties them.
+# promoted tags until the next prepare empties them. Its result is its own, so
+# a failed verification does not read as a failed cleanup.
+cleanup_status=passed
 for run in "${XDG_STATE_HOME}"/conclear/runs/*/; do
   [ -d "${run}" ] || continue
-  drill_run "cleanup-$(basename "${run}")" "${DRILL_CLI}" cleanup "$(basename "${run}")" --profile "${DRILL_PROFILE}" --retire --abandon --format json || status=failed
+  drill_run "cleanup-$(basename "${run}")" "${DRILL_CLI}" cleanup "$(basename "${run}")" --profile "${DRILL_PROFILE}" --retire --abandon --format json || cleanup_status=failed
 done
-drill_record cleanup "${status}" "$(jq -cn '{}')"
-[ "${status}" = passed ]
+drill_record cleanup "${cleanup_status}" "$(jq -cn '{}')"
+[ "${status}" = passed ] && [ "${cleanup_status}" = passed ]
