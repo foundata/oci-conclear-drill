@@ -19,6 +19,12 @@ that adds the matching heading; those headings never land on `main`.
   and pass with `--accept-stale-java-database` second. Needs the repository
   `drill-java` in the drill registry.
 
+### Changed
+
+- The rendered release profile declares schema version 2 and names the
+  passphrase file `cosign_passphrase_file`, so a drill needs a ConClear
+  candidate that reads profile schema 2.
+
 
 ## [0.1.0] - 2026-09-15
 

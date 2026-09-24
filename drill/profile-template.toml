@@ -2,13 +2,13 @@
 # workspace; every path below is filled in from the workspace and the operator's
 # credential directory. Nothing here is a secret: the credentials stay in the
 # files this template points at.
-schema_version = 1
+schema_version = 2
 ci_context = "omit"
 allowed_source_origins = ["https://github.com/foundata/"]
 auth_file = "@CONFIG@/drill-auth.json"
 cosign_private_key = "@CONFIG@/drill-cosign.key"
 cosign_public_key = "@CONFIG@/drill-cosign.pub"
-passphrase_file = "@CONFIG@/drill-cosign-passphrase"
+cosign_passphrase_file = "@CONFIG@/drill-cosign-passphrase"
 archive_dir = "@WORKSPACE@/archives"
 
 [builder]
