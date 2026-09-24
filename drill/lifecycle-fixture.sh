@@ -37,9 +37,13 @@ from datetime import date
 from pathlib import Path
 version = sys.argv[1]
 path = Path("CHANGELOG.md"); text = path.read_text(encoding="utf-8")
-marker = "## [Unreleased]\n\n- Nothing worth mentioning right now.\n"
-assert marker in text
-path.write_text(text.replace(marker, marker + f"\n\n## [{version}] - {date.today().isoformat()}\n\n### Added\n\n- Lifecycle fixture {version}.\n", 1), encoding="utf-8")
+# The heading goes right after the Unreleased section, whatever it holds.
+head, marker, rest = text.partition("\n## [Unreleased]\n")
+assert marker, "CHANGELOG.md has no Unreleased section"
+next_release = rest.find("\n## [")
+assert next_release != -1, "CHANGELOG.md has no released section after Unreleased"
+entry = f"\n## [{version}] - {date.today().isoformat()}\n\n### Added\n\n- Lifecycle fixture {version}.\n\n"
+path.write_text(head + marker + rest[:next_release] + entry + rest[next_release:], encoding="utf-8")
 PY
   git -c user.name="ConClear drill" -c user.email="drill@invalid" commit -q -am "drill: lifecycle fixture ${version} into ${registry}"
   git tag "v${version}"
